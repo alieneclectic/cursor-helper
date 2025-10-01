@@ -2,7 +2,7 @@
   "name": "cursor-helper",
   "displayName": "Cursor Helper",
   "description": "Get notified when Cursor tasks complete with customizable notifications and sounds. Includes context window monitoring.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "Claritystorm",
   "icon": "icon.png",
   "engines": {
