@@ -14,6 +14,12 @@ export interface CursorHelperConfig {
     customSoundPath: string;
     debounceMs: number;
     enableLogging: boolean;
+    contextMonitoring: {
+        enabled: boolean;
+        flagFile: string;
+        message: string;
+        threshold: number;
+    };
 }
 
 /**

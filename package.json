@@ -1,8 +1,8 @@
 {
   "name": "cursor-helper",
   "displayName": "Cursor Helper",
-  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds",
-  "version": "0.1.0",
+  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds. Includes context window monitoring.",
+  "version": "0.2.0",
   "publisher": "Claritystorm",
   "icon": "icon.png",
   "engines": {
@@ -48,6 +48,26 @@
           "type": "boolean",
           "default": false,
           "description": "Enable detailed logging to output channel"
+        },
+        "cursorHelper.contextMonitoring.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable context window capacity monitoring"
+        },
+        "cursorHelper.contextMonitoring.flagFile": {
+          "type": "string",
+          "default": "~/.cursor-context-alert.flag",
+          "description": "Path to the context alert flag file"
+        },
+        "cursorHelper.contextMonitoring.message": {
+          "type": "string",
+          "default": "⚠️ Context window at capacity",
+          "description": "Message to display when context window is at capacity"
+        },
+        "cursorHelper.contextMonitoring.threshold": {
+          "type": "number",
+          "default": 90,
+          "description": "Alert when context usage exceeds this percentage (0-100)"
         }
       }
     },
@@ -55,6 +75,10 @@
       {
         "command": "cursorHelper.quickSetup",
         "title": "Cursor Helper: Quick Setup (Copy Rule)"
+      },
+      {
+        "command": "cursorHelper.setupContextMonitoring",
+        "title": "Cursor Helper: Setup Context Window Monitoring"
       },
       {
         "command": "cursorHelper.testNotify",

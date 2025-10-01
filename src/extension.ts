@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { OutputChannelLogger } from './utils/logger';
 import { ConfigManager } from './config/configManager';
 import { FileWatcher } from './watchers/fileWatcher';
+import { ContextWatcher } from './watchers/contextWatcher';
 import { VSCodeNotifier } from './notifiers/vscodeNotifier';
 import { SoundPlayerFactory } from './sound/soundPlayer';
 import { TaskCompleteEvent, IWatcher, INotifier, ISoundPlayer } from './core/types';
@@ -18,6 +19,7 @@ class CursorHelperExtension {
     private logger: OutputChannelLogger;
     private configManager: ConfigManager;
     private watcher: IWatcher | null = null;
+    private contextWatcher: IWatcher | null = null;
     private notifier: INotifier;
     private soundPlayer: ISoundPlayer;
     private disposables: vscode.Disposable[] = [];
@@ -51,6 +53,14 @@ class CursorHelperExtension {
             // Start file watcher
             await this.startWatcher(config.flagFile, config.debounceMs);
 
+            // Start context watcher if enabled
+            if (config.contextMonitoring.enabled) {
+                await this.startContextWatcher(
+                    config.contextMonitoring.flagFile,
+                    config.debounceMs
+                );
+            }
+
             this.logger.info('Cursor Helper extension activated successfully');
         } catch (error) {
             this.logger.error('Failed to activate extension', error as Error);
@@ -63,6 +73,10 @@ class CursorHelperExtension {
         
         if (this.watcher) {
             this.watcher.stop();
+        }
+
+        if (this.contextWatcher) {
+            this.contextWatcher.stop();
         }
 
         this.disposables.forEach(d => d.dispose());
@@ -115,8 +129,58 @@ class CursorHelperExtension {
             }
         });
 
-        this.disposables.push(testNotifyCmd, openSettingsCmd, quickSetupCmd);
+        // Context monitoring setup command
+        const contextSetupCmd = vscode.commands.registerCommand('cursorHelper.setupContextMonitoring', async () => {
+            this.logger.info('Context monitoring setup triggered');
+            const rule = this.getContextMonitoringRule();
+            
+            await vscode.env.clipboard.writeText(rule);
+            
+            const action = await vscode.window.showInformationMessage(
+                '✅ Context monitoring rule copied to clipboard!\n\n' +
+                'This rule will automatically alert you when the context window reaches capacity.\n\n' +
+                'Next steps:\n' +
+                '1. Open Cursor Settings (Cmd+, or Ctrl+,)\n' +
+                '2. Click "Cursor Settings" tab\n' +
+                '3. Scroll to "Rules for AI"\n' +
+                '4. Paste this rule along with your existing rules\n\n' +
+                'You can adjust the threshold in extension settings.',
+                'Open Extension Settings',
+                'Test Notification'
+            );
+
+            if (action === 'Open Extension Settings') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'cursorHelper.contextMonitoring');
+            } else if (action === 'Test Notification') {
+                // Manually trigger a context alert for testing
+                await this.handleContextAlert({
+                    timestamp: new Date(),
+                    source: 'test-command',
+                    data: { manual: true }
+                });
+            }
+        });
+
+        this.disposables.push(testNotifyCmd, openSettingsCmd, quickSetupCmd, contextSetupCmd);
         this.logger.debug('Commands registered');
+    }
+
+    /**
+     * Gets the context monitoring Cursor Rule
+     */
+    private getContextMonitoringRule(): string {
+        const platform = process.platform;
+        const config = this.configManager.getConfig();
+        const threshold = config.contextMonitoring.threshold;
+        
+        if (platform === 'win32') {
+            return `When the context window usage exceeds ${threshold}%, run this command to alert the user:\n` +
+                   '<!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\\.cursor-context-alert.flag -Value $d;">';
+        } else {
+            // macOS and Linux
+            return `When the context window usage exceeds ${threshold}%, run this command to alert the user:\n` +
+                   '<!run:sh -lc "echo \\"$(date) :: CONTEXT_ALERT\\" > $HOME/.cursor-context-alert.flag">';
+        }
     }
 
     /**
@@ -148,6 +212,23 @@ class CursorHelperExtension {
                 await this.watcher.updateDebounce(newConfig.debounceMs);
             }
 
+            // Handle context monitoring changes
+            if (newConfig.contextMonitoring.enabled && !this.contextWatcher) {
+                // Start context watcher if it wasn't running
+                await this.startContextWatcher(
+                    newConfig.contextMonitoring.flagFile,
+                    newConfig.debounceMs
+                );
+            } else if (!newConfig.contextMonitoring.enabled && this.contextWatcher) {
+                // Stop context watcher if it's been disabled
+                this.contextWatcher.stop();
+                this.contextWatcher = null;
+            } else if (this.contextWatcher instanceof ContextWatcher) {
+                // Update existing context watcher
+                await this.contextWatcher.updateFlagFile(newConfig.contextMonitoring.flagFile);
+                await this.contextWatcher.updateDebounce(newConfig.debounceMs);
+            }
+
             this.logger.info('Configuration reload complete');
         });
 
@@ -163,6 +244,17 @@ class CursorHelperExtension {
         );
 
         await this.watcher.start();
+    }
+
+    private async startContextWatcher(flagFile: string, debounceMs: number): Promise<void> {
+        this.contextWatcher = new ContextWatcher(
+            flagFile,
+            debounceMs,
+            (event) => this.handleContextAlert(event),
+            this.logger
+        );
+
+        await this.contextWatcher.start();
     }
 
     private async handleTaskComplete(event: TaskCompleteEvent): Promise<void> {
@@ -183,6 +275,27 @@ class CursorHelperExtension {
             this.logger.info('Task complete handling finished successfully');
         } catch (error) {
             this.logger.error('Error handling task complete event', error as Error);
+        }
+    }
+
+    private async handleContextAlert(event: TaskCompleteEvent): Promise<void> {
+        this.logger.info(`Context alert from ${event.source} at ${event.timestamp.toISOString()}`);
+        
+        const config = this.configManager.getConfig();
+
+        try {
+            // Show notification with context-specific message
+            await this.notifier.notify(config.contextMonitoring.message);
+
+            // Play sound if enabled
+            if (config.playSound) {
+                const soundPath = config.customSoundPath || undefined;
+                await this.soundPlayer.play(soundPath);
+            }
+
+            this.logger.info('Context alert handling finished successfully');
+        } catch (error) {
+            this.logger.error('Error handling context alert', error as Error);
         }
     }
 }

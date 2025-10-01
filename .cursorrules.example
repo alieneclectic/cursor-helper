@@ -1,2 +1,5 @@
 When you complete a task, run this command to notify the user:
 <!run:sh -lc "echo \"$(date) :: CURSOR_DONE\" > $HOME/.cursor-notify.flag">
+
+When the context window usage exceeds 90%, run this command to alert the user:
+<!run:sh -lc "echo \"$(date) :: CONTEXT_ALERT\" > $HOME/.cursor-context-alert.flag">

@@ -7,6 +7,7 @@ Cursor Helper is a lightweight VS Code/Cursor extension that monitors a flag fil
 ## ✨ Features
 
 - 🔔 **Desktop Notifications**: Get notified instantly when tasks complete
+- 📊 **Context Window Monitoring**: Alerts when Cursor's context reaches capacity
 - 🔊 **Cross-Platform Sound**: Plays completion sounds on macOS, Windows, and Linux
 - ⚙️ **Highly Configurable**: Customize messages, sounds, and behavior
 - 🔧 **Extensible Architecture**: Easy to add new notification types and watchers
@@ -61,6 +62,31 @@ When you complete a task, run this command to notify the user:
 2. Type: `Cursor Helper: Test Notification`
 3. You should see a notification and hear a sound! 🎉
 
+### Setup Context Window Monitoring
+
+Get alerted when Cursor's context window reaches capacity:
+
+1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type: `Cursor Helper: Setup Context Window Monitoring`
+3. Press Enter and follow the instructions
+4. Paste the rule into your Cursor Settings alongside your existing rules
+
+**Or manually add this rule:**
+
+**macOS/Linux:**
+```text
+When the context window usage exceeds 90%, run this command to alert the user:
+<!run:sh -lc "echo \"$(date) :: CONTEXT_ALERT\" > $HOME/.cursor-context-alert.flag">
+```
+
+**Windows:**
+```text
+When the context window usage exceeds 90%, run this command to alert the user:
+<!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\.cursor-context-alert.flag -Value $d;">
+```
+
+You can adjust the threshold (default 90%) in the extension settings.
+
 ## ⚙️ Configuration
 
 | Setting | Type | Default | Description |
@@ -71,6 +97,10 @@ When you complete a task, run this command to notify the user:
 | `cursorHelper.customSoundPath` | string | `""` | Path to custom sound file (empty = system default) |
 | `cursorHelper.debounceMs` | number | `500` | Debounce time for file change events (ms) |
 | `cursorHelper.enableLogging` | boolean | `false` | Enable detailed logging to output channel |
+| `cursorHelper.contextMonitoring.enabled` | boolean | `true` | Enable context window capacity monitoring |
+| `cursorHelper.contextMonitoring.flagFile` | string | `~/.cursor-context-alert.flag` | Path to the context alert flag file |
+| `cursorHelper.contextMonitoring.message` | string | `⚠️ Context window at capacity` | Message to display when context window is at capacity |
+| `cursorHelper.contextMonitoring.threshold` | number | `90` | Alert when context usage exceeds this percentage (0-100) |
 
 ### Example Configuration
 
@@ -114,16 +144,25 @@ When you complete a task, run this command to notify the user:
 
 Use the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
 - **Cursor Helper: Quick Setup (Copy Rule)** - Easy one-click setup with platform-specific rule
+- **Cursor Helper: Setup Context Window Monitoring** - Setup alerts for context capacity
 - **Cursor Helper: Test Notification** - Trigger a test notification
 - **Cursor Helper: Open Settings** - Open extension settings
 
 ### How It Works
 
+**Task Completion Notifications:**
 1. You add the Cursor Rule (see Quick Start)
 2. When Cursor AI completes a task, the rule executes
 3. The rule updates the flag file with a timestamp
 4. Extension detects the file change
 5. You get a notification and sound! 🎉
+
+**Context Window Monitoring:**
+1. Add the context monitoring rule to Cursor Settings
+2. When context usage exceeds your threshold (default 90%), Cursor triggers the rule
+3. The rule updates the context alert flag file
+4. Extension detects the alert
+5. You get notified to take action (e.g., start a new chat, summarize, etc.)
 
 ## 🔊 Sound Support
 
@@ -334,6 +373,15 @@ Contributions are welcome! This extension is designed to be extensible.
    - Platform testing notes
 
 ## 📜 Changelog
+
+### [0.2.0] - 2025-10-01
+
+**Added:**
+- Context window capacity monitoring with configurable threshold
+- Context watcher for monitoring context usage alerts
+- Setup Context Window Monitoring command
+- Context-specific configuration options (enabled, flagFile, message, threshold)
+- Automatic alerts when context window reaches capacity
 
 ### [0.1.0] - 2025-10-01
 

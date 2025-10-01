@@ -29,7 +29,13 @@ export class ConfigManager {
             playSound: config.get<boolean>('playSound', true),
             customSoundPath: config.get<string>('customSoundPath', ''),
             debounceMs: config.get<number>('debounceMs', 500),
-            enableLogging: config.get<boolean>('enableLogging', false)
+            enableLogging: config.get<boolean>('enableLogging', false),
+            contextMonitoring: {
+                enabled: config.get<boolean>('contextMonitoring.enabled', true),
+                flagFile: config.get<string>('contextMonitoring.flagFile', '~/.cursor-context-alert.flag'),
+                message: config.get<string>('contextMonitoring.message', '⚠️ Context window at capacity'),
+                threshold: config.get<number>('contextMonitoring.threshold', 90)
+            }
         };
     }
 
