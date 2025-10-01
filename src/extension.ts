@@ -89,8 +89,50 @@ class CursorHelperExtension {
             vscode.commands.executeCommand('workbench.action.openSettings', 'cursorHelper');
         });
 
-        this.disposables.push(testNotifyCmd, openSettingsCmd);
+        // Quick setup command - copies Cursor Rule to clipboard
+        const quickSetupCmd = vscode.commands.registerCommand('cursorHelper.quickSetup', async () => {
+            this.logger.info('Quick setup triggered');
+            const rule = this.getCursorRuleForPlatform();
+            
+            await vscode.env.clipboard.writeText(rule);
+            
+            const action = await vscode.window.showInformationMessage(
+                '✅ Cursor Rule copied to clipboard!\n\n' +
+                'Next steps:\n' +
+                '1. Open Cursor Settings (Cmd+, or Ctrl+,)\n' +
+                '2. Click "Cursor Settings" tab\n' +
+                '3. Scroll to "Rules for AI"\n' +
+                '4. Paste the rule\n\n' +
+                'The rule will auto-trigger notifications when tasks complete!',
+                'Open Cursor Settings',
+                'Test Notification'
+            );
+
+            if (action === 'Open Cursor Settings') {
+                vscode.commands.executeCommand('workbench.action.openSettings', '@ext:cursorHelper');
+            } else if (action === 'Test Notification') {
+                vscode.commands.executeCommand('cursorHelper.testNotify');
+            }
+        });
+
+        this.disposables.push(testNotifyCmd, openSettingsCmd, quickSetupCmd);
         this.logger.debug('Commands registered');
+    }
+
+    /**
+     * Gets the platform-specific Cursor Rule
+     */
+    private getCursorRuleForPlatform(): string {
+        const platform = process.platform;
+        
+        if (platform === 'win32') {
+            return 'When you complete a task, run this command to notify the user:\n' +
+                   '<!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\\.cursor-notify.flag -Value $d;">';
+        } else {
+            // macOS and Linux
+            return 'When you complete a task, run this command to notify the user:\n' +
+                   '<!run:sh -lc "echo \\"$(date) :: CURSOR_DONE\\" > $HOME/.cursor-notify.flag">';
+        }
     }
 
     private watchConfigChanges(): void {

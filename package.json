@@ -53,6 +53,10 @@
     },
     "commands": [
       {
+        "command": "cursorHelper.quickSetup",
+        "title": "Cursor Helper: Quick Setup (Copy Rule)"
+      },
+      {
         "command": "cursorHelper.testNotify",
         "title": "Cursor Helper: Test Notification"
       },

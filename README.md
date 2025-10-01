@@ -11,39 +11,55 @@ Cursor Helper is a lightweight VS Code/Cursor extension that monitors a flag fil
 - ⚙️ **Highly Configurable**: Customize messages, sounds, and behavior
 - 🔧 **Extensible Architecture**: Easy to add new notification types and watchers
 - 📝 **Detailed Logging**: Optional output channel for debugging
+- 🔒 **Privacy First**: Runs entirely locally, no telemetry or external calls
 
 ## 🚀 Quick Start
 
 ### Installation
 
-1. **From VSIX** (Development):
-   ```bash
-   npm install
-   npm run build
-   npm run package
-   ```
-   Then install the generated `.vsix` file via **Extensions → Install from VSIX...**
+**Option 1: From VSIX** (Development/Testing)
+```bash
+npm install
+npm run build
+npm run package
+```
+Then install the generated `.vsix` file via **Extensions → Install from VSIX...**
 
-2. **From Source**:
-   - Clone this repository
-   - Run `npm install`
-   - Press `F5` to open Extension Development Host
+**Option 2: From Source** (Development)
+```bash
+git clone https://github.com/your-username/cursor-helper.git
+cd cursor-helper
+npm install
+```
+Press `F5` in VS Code/Cursor to open Extension Development Host
 
-### Setup with Cursor Rules
+### Setup Cursor Rule (Automatic Notifications)
 
-To trigger notifications automatically, add a Cursor Rule that updates the flag file when tasks complete:
+The easiest way to get automatic notifications:
 
-#### macOS/Linux Rule:
+1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type: `Cursor Helper: Quick Setup (Copy Rule)`
+3. Press Enter and follow the instructions
+
+**Or manually add this rule to Cursor Settings:**
+
+**macOS/Linux:**
 ```text
+When you complete a task, run this command to notify the user:
 <!run:sh -lc "echo \"$(date) :: CURSOR_DONE\" > $HOME/.cursor-notify.flag">
 ```
 
-#### Windows Rule:
+**Windows:**
 ```text
+When you complete a task, run this command to notify the user:
 <!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\.cursor-notify.flag -Value $d;">
 ```
 
-Add this rule to your Cursor Rules configuration to automatically trigger notifications when the AI completes tasks.
+### Test It Works
+
+1. Press `Cmd+Shift+P` / `Ctrl+Shift+P`
+2. Type: `Cursor Helper: Test Notification`
+3. You should see a notification and hear a sound! 🎉
 
 ## ⚙️ Configuration
 
@@ -69,27 +85,52 @@ Add this rule to your Cursor Rules configuration to automatically trigger notifi
 }
 ```
 
+### Platform-Specific Sound Paths
+
+**macOS** (system sounds):
+```json
+{
+  "cursorHelper.customSoundPath": "/System/Library/Sounds/Hero.aiff"
+}
+```
+
+**Windows** (custom WAV):
+```json
+{
+  "cursorHelper.customSoundPath": "C:\\Users\\YourName\\Music\\complete.wav"
+}
+```
+
+**Linux** (custom sound):
+```json
+{
+  "cursorHelper.customSoundPath": "/home/username/sounds/complete.wav"
+}
+```
+
 ## 🎯 Usage
 
-### Manual Test
+### Commands
 
 Use the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
+- **Cursor Helper: Quick Setup (Copy Rule)** - Easy one-click setup with platform-specific rule
 - **Cursor Helper: Test Notification** - Trigger a test notification
 - **Cursor Helper: Open Settings** - Open extension settings
 
-### Automatic Triggering
+### How It Works
 
-Once you've added the Cursor Rule, the extension will automatically:
-1. Watch the configured flag file
-2. Detect when it's updated by Cursor
-3. Show a notification
-4. Play a sound (if enabled)
+1. You add the Cursor Rule (see Quick Start)
+2. When Cursor AI completes a task, the rule executes
+3. The rule updates the flag file with a timestamp
+4. Extension detects the file change
+5. You get a notification and sound! 🎉
 
 ## 🔊 Sound Support
 
 ### macOS
 - Default: System sound (`/System/Library/Sounds/Glass.aiff`)
 - Custom: Any `.aiff` or `.wav` file via `customSoundPath`
+- Uses built-in `afplay` command
 
 ### Windows
 - Default: Console beep (800Hz, 300ms)
@@ -97,7 +138,8 @@ Once you've added the Cursor Rule, the extension will automatically:
 
 ### Linux
 - Attempts `paplay` (PulseAudio) → `aplay` (ALSA) → terminal bell
-- Custom sound support for `.wav` and `.oga` files
+- Custom support for `.wav` and `.oga` files
+- Install utilities: `sudo apt-get install pulseaudio-utils` or `alsa-utils`
 
 ## 🏗️ Architecture
 
@@ -106,57 +148,50 @@ The extension is built with extensibility in mind:
 ```
 src/
 ├── core/
-│   └── types.ts              # Interfaces and types
+│   └── types.ts              # Interfaces (IWatcher, INotifier, ISoundPlayer, ILogger)
 ├── config/
-│   └── configManager.ts      # Configuration management
+│   └── configManager.ts      # Configuration management with hot-reload
 ├── watchers/
-│   └── fileWatcher.ts        # File watching (extensible)
+│   └── fileWatcher.ts        # File watching with debouncing (extensible)
 ├── notifiers/
 │   └── vscodeNotifier.ts     # Notification handlers (extensible)
 ├── sound/
-│   └── soundPlayer.ts        # Sound playback (extensible)
+│   └── soundPlayer.ts        # Cross-platform sound playback (extensible)
 ├── utils/
 │   ├── logger.ts             # Logging utilities
 │   └── path.ts               # Path utilities
 └── extension.ts              # Main entry point
 ```
 
-### Extending the Extension
+### Extensibility
 
-#### Add a New Watcher
+All major components implement interfaces, making it easy to extend:
 
-Implement the `IWatcher` interface:
-
+**Add a New Watcher:**
 ```typescript
 import { IWatcher, TaskCompleteEvent } from './core/types';
 
-export class MyCustomWatcher implements IWatcher {
+export class HttpWatcher implements IWatcher {
     async start(): Promise<void> { /* ... */ }
     stop(): void { /* ... */ }
     isActive(): boolean { /* ... */ }
 }
 ```
 
-#### Add a New Notifier
-
-Implement the `INotifier` interface:
-
+**Add a New Notifier:**
 ```typescript
 import { INotifier } from './core/types';
 
-export class MyCustomNotifier implements INotifier {
+export class WebhookNotifier implements INotifier {
     async notify(message: string): Promise<void> { /* ... */ }
 }
 ```
 
-#### Add a New Sound Player
-
-Implement the `ISoundPlayer` interface:
-
+**Add a New Sound Player:**
 ```typescript
 import { ISoundPlayer } from './core/types';
 
-export class MyCustomSoundPlayer implements ISoundPlayer {
+export class CustomSoundPlayer implements ISoundPlayer {
     canPlay(): boolean { /* ... */ }
     async play(soundPath?: string): Promise<void> { /* ... */ }
 }
@@ -166,35 +201,54 @@ export class MyCustomSoundPlayer implements ISoundPlayer {
 
 ### Notifications Not Appearing
 
-1. Check that the flag file path is correct (supports `~` expansion)
-2. Ensure the parent directory exists and is writable
-3. Enable logging: `"cursorHelper.enableLogging": true`
-4. Check Output panel: **View → Output → Cursor Helper**
+1. **Check flag file path:**
+   ```bash
+   # macOS/Linux
+   ls -la ~/.cursor-notify.flag
+   
+   # Windows PowerShell
+   Test-Path $env:USERPROFILE\.cursor-notify.flag
+   ```
+
+2. **Enable logging:**
+   - Set `"cursorHelper.enableLogging": true`
+   - View Output: **View → Output → Cursor Helper**
+
+3. **Test manually:**
+   ```bash
+   # macOS/Linux
+   echo "test" > ~/.cursor-notify.flag
+   
+   # Windows
+   echo "test" > %USERPROFILE%\.cursor-notify.flag
+   ```
 
 ### Sound Not Playing
 
-1. Verify your system has a compatible sound player:
-   - macOS: `afplay` (built-in)
-   - Windows: PowerShell (built-in)
-   - Linux: `paplay` or `aplay` (install `pulseaudio-utils` or `alsa-utils`)
-2. Test with a custom sound file to ensure it exists and is readable
-3. Check logs for errors
+**macOS:**
+```bash
+# Check afplay
+which afplay
+afplay /System/Library/Sounds/Glass.aiff
+```
+
+**Linux:**
+```bash
+# Install sound utilities (Ubuntu/Debian)
+sudo apt-get install pulseaudio-utils
+# Or ALSA
+sudo apt-get install alsa-utils
+```
+
+**Windows:** PowerShell should work by default
 
 ### File Watcher Issues
 
-- Some network drives or cloud storage folders may not support file watching
+- Network drives or cloud storage may not support file watching
 - Try using a local path for the flag file
-- Increase `debounceMs` if you're getting multiple notifications
+- Increase `debounceMs` if getting multiple notifications
 
-## 🔒 Privacy
-
-This extension:
-- ✅ Runs entirely locally
-- ✅ No telemetry or analytics
-- ✅ No external network calls
-- ✅ No data collection
-
-## 📝 Development
+## 🔧 Development
 
 ### Building from Source
 
@@ -205,7 +259,7 @@ npm install
 # Build
 npm run build
 
-# Watch mode
+# Watch mode (auto-rebuild on changes)
 npm run watch
 
 # Package for distribution
@@ -218,19 +272,82 @@ npm run package
 2. Press `F5` to launch Extension Development Host
 3. Set breakpoints in TypeScript files
 4. Use Command Palette to test commands
+5. Check Output panel (View → Output → Cursor Helper) for logs
+
+### Testing
+
+1. **Test Command:** `Cursor Helper: Test Notification`
+2. **Manual Flag Update:** `echo "test" > ~/.cursor-notify.flag`
+3. **Watch Mode:** Run `npm run watch` and press `F5`
+4. **VSIX Install:** `npm run package` then install the `.vsix` file
+
+### Project Structure
+
+```
+cursor-helper/
+├── src/                      # TypeScript source files
+├── out/                      # Compiled JavaScript (generated)
+├── package.json              # Extension manifest
+├── tsconfig.json             # TypeScript configuration
+├── .vscode/                  # VS Code debug configuration
+│   ├── launch.json
+│   └── tasks.json
+└── README.md                 # This file
+```
 
 ## 🤝 Contributing
 
-Contributions are welcome! This extension is designed to be extensible:
+Contributions are welcome! This extension is designed to be extensible.
 
-- Add new watcher types (HTTP endpoints, log file tailing, etc.)
-- Add new notification types (rich notifications, webhooks, etc.)
+### Getting Started
+
+1. Fork and clone the repository
+2. Run `npm install`
+3. Make changes in `src/` directory
+4. Run `npm run build` or `npm run watch`
+5. Press `F5` to test in Extension Development Host
+
+### Coding Standards
+
+- Use TypeScript strict mode
+- Prefer interfaces over types for extensibility
+- Use async/await over callbacks
+- Document public APIs with JSDoc comments
+- Run `npm run lint` before committing
+
+### Areas for Contribution
+
+- Add new watcher types (HTTP endpoints, log file tailing, process monitoring)
+- Add new notification types (webhooks, rich notifications with buttons)
 - Add new sound players or platform support
 - Improve error handling and edge cases
+- Add automated tests
+- Improve documentation
 
-## 📜 License
+### Pull Request Process
 
-MIT License - see [LICENSE](LICENSE) file for details
+1. Update README.md if adding new features
+2. Ensure all tests pass and linting is clean
+3. Create a Pull Request with:
+   - Clear description of changes
+   - Screenshots/GIFs for UI changes
+   - Platform testing notes
+
+## 📜 Changelog
+
+### [0.1.0] - 2025-10-01
+
+**Added:**
+- Initial release of Cursor Helper extension
+- File-based task completion detection via flag file
+- Cross-platform desktop notifications
+- Cross-platform sound playback (macOS/Windows/Linux)
+- Configurable settings (flag file path, message, sound, debounce, logging)
+- Quick Setup command with platform-specific rules
+- Test Notification and Open Settings commands
+- Extensible architecture with interfaces
+- Hot-reload configuration support
+- Output channel logging for debugging
 
 ## 🗺️ Roadmap
 
@@ -242,6 +359,11 @@ MIT License - see [LICENSE](LICENSE) file for details
 - [ ] Rate limiting and cooldown
 - [ ] Bundled default sounds
 - [ ] E2E test suite
+- [ ] VS Code Marketplace publication
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details
 
 ## 🙏 Acknowledgments
 
@@ -249,5 +371,4 @@ Built for the Cursor AI community to enhance the AI-assisted coding experience.
 
 ---
 
-**Enjoy! 🎉** If you find this extension helpful, please star the repository and share it with others!
-
+**Enjoy!** 🎉 If you find this extension helpful, please star the repository and share it with others!
