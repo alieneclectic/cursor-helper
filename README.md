@@ -8,6 +8,7 @@ Cursor Helper is a lightweight VS Code/Cursor extension that monitors a flag fil
 
 - 🔔 **Desktop Notifications**: Get notified instantly when tasks complete
 - 📊 **Context Window Monitoring**: Alerts when Cursor's context reaches capacity
+- 📝 **File Edit Confirmations**: Get notified when Cursor asks to edit files
 - 🔊 **Cross-Platform Sound**: Plays completion sounds on macOS, Windows, and Linux
 - ⚙️ **Highly Configurable**: Customize messages, sounds, and behavior
 - 🔧 **Extensible Architecture**: Easy to add new notification types and watchers
@@ -87,6 +88,31 @@ When the context window usage exceeds 90%, run this command to alert the user:
 
 You can adjust the threshold (default 90%) in the extension settings.
 
+### Setup File Confirmation Alerts
+
+Get notified when Cursor requests permission to edit files:
+
+1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+2. Type: `Cursor Helper: Setup File Confirmation Alerts`
+3. Press Enter and follow the instructions
+4. Paste the rule into your Cursor Settings alongside your existing rules
+
+**Or manually add this rule:**
+
+**macOS/Linux:**
+```text
+Before asking for confirmation to edit a file, run this command to alert the user:
+<!run:sh -lc "echo \"$(date) :: FILE_CONFIRM\" > $HOME/.cursor-file-confirm.flag">
+```
+
+**Windows:**
+```text
+Before asking for confirmation to edit a file, run this command to alert the user:
+<!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\.cursor-file-confirm.flag -Value $d;">
+```
+
+This helps you stay aware when AI needs your confirmation to modify files.
+
 ## ⚙️ Configuration
 
 | Setting | Type | Default | Description |
@@ -101,6 +127,9 @@ You can adjust the threshold (default 90%) in the extension settings.
 | `cursorHelper.contextMonitoring.flagFile` | string | `~/.cursor-context-alert.flag` | Path to the context alert flag file |
 | `cursorHelper.contextMonitoring.message` | string | `⚠️ Context window at capacity` | Message to display when context window is at capacity |
 | `cursorHelper.contextMonitoring.threshold` | number | `90` | Alert when context usage exceeds this percentage (0-100) |
+| `cursorHelper.fileConfirmation.enabled` | boolean | `true` | Enable alerts when Cursor requests file edit confirmation |
+| `cursorHelper.fileConfirmation.flagFile` | string | `~/.cursor-file-confirm.flag` | Path to the file confirmation alert flag file |
+| `cursorHelper.fileConfirmation.message` | string | `📝 Cursor is requesting file edit permission` | Message to display when Cursor requests file edit confirmation |
 
 ### Example Configuration
 
@@ -145,6 +174,7 @@ You can adjust the threshold (default 90%) in the extension settings.
 Use the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
 - **Cursor Helper: Quick Setup (Copy Rule)** - Easy one-click setup with platform-specific rule
 - **Cursor Helper: Setup Context Window Monitoring** - Setup alerts for context capacity
+- **Cursor Helper: Setup File Confirmation Alerts** - Setup alerts for file edit confirmations
 - **Cursor Helper: Test Notification** - Trigger a test notification
 - **Cursor Helper: Open Settings** - Open extension settings
 
@@ -163,6 +193,13 @@ Use the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
 3. The rule updates the context alert flag file
 4. Extension detects the alert
 5. You get notified to take action (e.g., start a new chat, summarize, etc.)
+
+**File Confirmation Alerts:**
+1. Add the file confirmation rule to Cursor Settings
+2. When Cursor asks for permission to edit a file, the rule executes
+3. The rule updates the file confirmation flag file
+4. Extension detects the alert
+5. You get notified that Cursor needs your attention for a file edit!
 
 ## 🔊 Sound Support
 
@@ -187,19 +224,21 @@ The extension is built with extensibility in mind:
 ```
 src/
 ├── core/
-│   └── types.ts              # Interfaces (IWatcher, INotifier, ISoundPlayer, ILogger)
+│   └── types.ts                   # Interfaces (IWatcher, INotifier, ISoundPlayer, ILogger)
 ├── config/
-│   └── configManager.ts      # Configuration management with hot-reload
+│   └── configManager.ts           # Configuration management with hot-reload
 ├── watchers/
-│   └── fileWatcher.ts        # File watching with debouncing (extensible)
+│   ├── fileWatcher.ts             # Task completion watcher
+│   ├── contextWatcher.ts          # Context window capacity watcher
+│   └── fileConfirmationWatcher.ts # File edit confirmation watcher
 ├── notifiers/
-│   └── vscodeNotifier.ts     # Notification handlers (extensible)
+│   └── vscodeNotifier.ts          # Notification handlers (extensible)
 ├── sound/
-│   └── soundPlayer.ts        # Cross-platform sound playback (extensible)
+│   └── soundPlayer.ts             # Cross-platform sound playback (extensible)
 ├── utils/
-│   ├── logger.ts             # Logging utilities
-│   └── path.ts               # Path utilities
-└── extension.ts              # Main entry point
+│   ├── logger.ts                  # Logging utilities
+│   └── path.ts                    # Path utilities
+└── extension.ts                   # Main entry point
 ```
 
 ### Extensibility
@@ -373,6 +412,15 @@ Contributions are welcome! This extension is designed to be extensible.
    - Platform testing notes
 
 ## 📜 Changelog
+
+### [0.5.0] - 2025-10-01
+
+**Added:**
+- File edit confirmation alerts - get notified when Cursor asks to edit files
+- FileConfirmationWatcher for monitoring file edit confirmation requests
+- Setup File Confirmation Alerts command
+- File confirmation configuration options (enabled, flagFile, message)
+- Helps you stay aware when AI needs your permission to modify files
 
 ### [0.2.0] - 2025-10-01
 

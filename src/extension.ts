@@ -8,6 +8,7 @@ import { OutputChannelLogger } from './utils/logger';
 import { ConfigManager } from './config/configManager';
 import { FileWatcher } from './watchers/fileWatcher';
 import { ContextWatcher } from './watchers/contextWatcher';
+import { FileConfirmationWatcher } from './watchers/fileConfirmationWatcher';
 import { VSCodeNotifier } from './notifiers/vscodeNotifier';
 import { SoundPlayerFactory } from './sound/soundPlayer';
 import { TaskCompleteEvent, IWatcher, INotifier, ISoundPlayer } from './core/types';
@@ -20,6 +21,7 @@ class CursorHelperExtension {
     private configManager: ConfigManager;
     private watcher: IWatcher | null = null;
     private contextWatcher: IWatcher | null = null;
+    private fileConfirmationWatcher: IWatcher | null = null;
     private notifier: INotifier;
     private soundPlayer: ISoundPlayer;
     private disposables: vscode.Disposable[] = [];
@@ -61,6 +63,14 @@ class CursorHelperExtension {
                 );
             }
 
+            // Start file confirmation watcher if enabled
+            if (config.fileConfirmation.enabled) {
+                await this.startFileConfirmationWatcher(
+                    config.fileConfirmation.flagFile,
+                    config.debounceMs
+                );
+            }
+
             this.logger.info('Cursor Helper extension activated successfully');
         } catch (error) {
             this.logger.error('Failed to activate extension', error as Error);
@@ -77,6 +87,10 @@ class CursorHelperExtension {
 
         if (this.contextWatcher) {
             this.contextWatcher.stop();
+        }
+
+        if (this.fileConfirmationWatcher) {
+            this.fileConfirmationWatcher.stop();
         }
 
         this.disposables.forEach(d => d.dispose());
@@ -161,7 +175,39 @@ class CursorHelperExtension {
             }
         });
 
-        this.disposables.push(testNotifyCmd, openSettingsCmd, quickSetupCmd, contextSetupCmd);
+        // File confirmation setup command
+        const fileConfirmSetupCmd = vscode.commands.registerCommand('cursorHelper.setupFileConfirmation', async () => {
+            this.logger.info('File confirmation setup triggered');
+            const rule = this.getFileConfirmationRule();
+            
+            await vscode.env.clipboard.writeText(rule);
+            
+            const action = await vscode.window.showInformationMessage(
+                '✅ File confirmation alert rule copied to clipboard!\n\n' +
+                'This rule will alert you when Cursor requests permission to edit a file.\n\n' +
+                'Next steps:\n' +
+                '1. Open Cursor Settings (Cmd+, or Ctrl+,)\n' +
+                '2. Click "Cursor Settings" tab\n' +
+                '3. Scroll to "Rules for AI"\n' +
+                '4. Paste this rule along with your existing rules\n\n' +
+                'This helps you stay aware when AI is asking to modify files.',
+                'Open Extension Settings',
+                'Test Notification'
+            );
+
+            if (action === 'Open Extension Settings') {
+                vscode.commands.executeCommand('workbench.action.openSettings', 'cursorHelper.fileConfirmation');
+            } else if (action === 'Test Notification') {
+                // Manually trigger a file confirmation alert for testing
+                await this.handleFileConfirmation({
+                    timestamp: new Date(),
+                    source: 'test-command',
+                    data: { manual: true }
+                });
+            }
+        });
+
+        this.disposables.push(testNotifyCmd, openSettingsCmd, quickSetupCmd, contextSetupCmd, fileConfirmSetupCmd);
         this.logger.debug('Commands registered');
     }
 
@@ -180,6 +226,22 @@ class CursorHelperExtension {
             // macOS and Linux
             return `When the context window usage exceeds ${threshold}%, run this command to alert the user:\n` +
                    '<!run:sh -lc "echo \\"$(date) :: CONTEXT_ALERT\\" > $HOME/.cursor-context-alert.flag">';
+        }
+    }
+
+    /**
+     * Gets the file confirmation Cursor Rule
+     */
+    private getFileConfirmationRule(): string {
+        const platform = process.platform;
+        
+        if (platform === 'win32') {
+            return 'Before asking for confirmation to edit a file, run this command to alert the user:\n' +
+                   '<!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\\.cursor-file-confirm.flag -Value $d;">';
+        } else {
+            // macOS and Linux
+            return 'Before asking for confirmation to edit a file, run this command to alert the user:\n' +
+                   '<!run:sh -lc "echo \\"$(date) :: FILE_CONFIRM\\" > $HOME/.cursor-file-confirm.flag">';
         }
     }
 
@@ -229,6 +291,23 @@ class CursorHelperExtension {
                 await this.contextWatcher.updateDebounce(newConfig.debounceMs);
             }
 
+            // Handle file confirmation monitoring changes
+            if (newConfig.fileConfirmation.enabled && !this.fileConfirmationWatcher) {
+                // Start file confirmation watcher if it wasn't running
+                await this.startFileConfirmationWatcher(
+                    newConfig.fileConfirmation.flagFile,
+                    newConfig.debounceMs
+                );
+            } else if (!newConfig.fileConfirmation.enabled && this.fileConfirmationWatcher) {
+                // Stop file confirmation watcher if it's been disabled
+                this.fileConfirmationWatcher.stop();
+                this.fileConfirmationWatcher = null;
+            } else if (this.fileConfirmationWatcher instanceof FileConfirmationWatcher) {
+                // Update existing file confirmation watcher
+                await this.fileConfirmationWatcher.updateFlagFile(newConfig.fileConfirmation.flagFile);
+                await this.fileConfirmationWatcher.updateDebounce(newConfig.debounceMs);
+            }
+
             this.logger.info('Configuration reload complete');
         });
 
@@ -255,6 +334,17 @@ class CursorHelperExtension {
         );
 
         await this.contextWatcher.start();
+    }
+
+    private async startFileConfirmationWatcher(flagFile: string, debounceMs: number): Promise<void> {
+        this.fileConfirmationWatcher = new FileConfirmationWatcher(
+            flagFile,
+            debounceMs,
+            (event) => this.handleFileConfirmation(event),
+            this.logger
+        );
+
+        await this.fileConfirmationWatcher.start();
     }
 
     private async handleTaskComplete(event: TaskCompleteEvent): Promise<void> {
@@ -296,6 +386,27 @@ class CursorHelperExtension {
             this.logger.info('Context alert handling finished successfully');
         } catch (error) {
             this.logger.error('Error handling context alert', error as Error);
+        }
+    }
+
+    private async handleFileConfirmation(event: TaskCompleteEvent): Promise<void> {
+        this.logger.info(`File confirmation alert from ${event.source} at ${event.timestamp.toISOString()}`);
+        
+        const config = this.configManager.getConfig();
+
+        try {
+            // Show notification with file confirmation message
+            await this.notifier.notify(config.fileConfirmation.message);
+
+            // Play sound if enabled
+            if (config.playSound) {
+                const soundPath = config.customSoundPath || undefined;
+                await this.soundPlayer.play(soundPath);
+            }
+
+            this.logger.info('File confirmation alert handling finished successfully');
+        } catch (error) {
+            this.logger.error('Error handling file confirmation alert', error as Error);
         }
     }
 }

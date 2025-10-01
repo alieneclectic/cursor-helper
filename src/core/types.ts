@@ -20,6 +20,11 @@ export interface CursorHelperConfig {
         message: string;
         threshold: number;
     };
+    fileConfirmation: {
+        enabled: boolean;
+        flagFile: string;
+        message: string;
+    };
 }
 
 /**

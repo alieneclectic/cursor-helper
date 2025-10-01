@@ -35,6 +35,11 @@ export class ConfigManager {
                 flagFile: config.get<string>('contextMonitoring.flagFile', '~/.cursor-context-alert.flag'),
                 message: config.get<string>('contextMonitoring.message', '⚠️ Context window at capacity'),
                 threshold: config.get<number>('contextMonitoring.threshold', 90)
+            },
+            fileConfirmation: {
+                enabled: config.get<boolean>('fileConfirmation.enabled', true),
+                flagFile: config.get<string>('fileConfirmation.flagFile', '~/.cursor-file-confirm.flag'),
+                message: config.get<string>('fileConfirmation.message', '📝 Cursor is requesting file edit permission')
             }
         };
     }

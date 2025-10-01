@@ -1,8 +1,8 @@
 {
   "name": "cursor-helper",
   "displayName": "Cursor Helper",
-  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds. Includes context window monitoring.",
-  "version": "0.4.0",
+  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds. Includes context window monitoring and file edit confirmation alerts.",
+  "version": "0.5.0",
   "publisher": "Claritystorm",
   "icon": "icon.png",
   "engines": {
@@ -68,6 +68,21 @@
           "type": "number",
           "default": 90,
           "description": "Alert when context usage exceeds this percentage (0-100)"
+        },
+        "cursorHelper.fileConfirmation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable alerts when Cursor requests file edit confirmation"
+        },
+        "cursorHelper.fileConfirmation.flagFile": {
+          "type": "string",
+          "default": "~/.cursor-file-confirm.flag",
+          "description": "Path to the file confirmation alert flag file"
+        },
+        "cursorHelper.fileConfirmation.message": {
+          "type": "string",
+          "default": "📝 Cursor is requesting file edit permission",
+          "description": "Message to display when Cursor requests file edit confirmation"
         }
       }
     },
@@ -87,6 +102,10 @@
       {
         "command": "cursorHelper.openSettings",
         "title": "Cursor Helper: Open Settings"
+      },
+      {
+        "command": "cursorHelper.setupFileConfirmation",
+        "title": "Cursor Helper: Setup File Confirmation Alerts"
       }
     ]
   },
