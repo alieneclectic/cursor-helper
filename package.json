@@ -1,0 +1,93 @@
+{
+  "name": "cursor-helper",
+  "displayName": "Cursor Helper",
+  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds",
+  "version": "0.1.0",
+  "publisher": "your-name-or-org",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Cursor Helper",
+      "properties": {
+        "cursorHelper.flagFile": {
+          "type": "string",
+          "default": "~/.cursor-notify.flag",
+          "description": "Path to the flag file to watch for task completion"
+        },
+        "cursorHelper.message": {
+          "type": "string",
+          "default": "Cursor task complete",
+          "description": "Notification message to display"
+        },
+        "cursorHelper.playSound": {
+          "type": "boolean",
+          "default": true,
+          "description": "Play a sound when a task completes"
+        },
+        "cursorHelper.customSoundPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to custom sound file (leave empty for system default)"
+        },
+        "cursorHelper.debounceMs": {
+          "type": "number",
+          "default": 500,
+          "description": "Debounce time in milliseconds for file change events"
+        },
+        "cursorHelper.enableLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable detailed logging to output channel"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "cursorHelper.testNotify",
+        "title": "Cursor Helper: Test Notification"
+      },
+      {
+        "command": "cursorHelper.openSettings",
+        "title": "Cursor Helper: Open Settings"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/cursor-helper"
+  },
+  "keywords": [
+    "cursor",
+    "notification",
+    "task",
+    "completion",
+    "alert"
+  ],
+  "license": "MIT"
+}
+
