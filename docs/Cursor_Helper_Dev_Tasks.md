@@ -29,7 +29,7 @@
 - [ ] Define extension identity
   - [ ] `"name": "cursor-helper"`
   - [ ] `"displayName": "Cursor Helper"`
-  - [ ] `"publisher": "your-name-or-org"`
+  - [ ] `"publisher": "Claritystorm"`
   - [ ] `"engines.vscode": "^1.85.0"` (adjust as needed for Cursor compatibility)
 - [ ] Activation
   - [ ] `activationEvents: ["onStartupFinished"]`
