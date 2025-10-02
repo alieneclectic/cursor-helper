@@ -1,470 +1,415 @@
 # Cursor Helper
 
-Get notified when your Cursor AI tasks complete! 🎉
-
-Cursor Helper is a lightweight VS Code/Cursor extension that monitors a flag file and triggers desktop notifications with optional sounds when your AI-assisted coding tasks finish.
+A powerful VS Code/Cursor extension that enhances your AI-assisted coding experience with notifications and intelligent monitoring.
 
 ## ✨ Features
 
-- 🔔 **Desktop Notifications**: Get notified instantly when tasks complete
-- 📊 **Context Window Monitoring**: Alerts when Cursor's context reaches capacity
-- 📝 **File Edit Confirmations**: Get notified when Cursor asks to edit files
-- 🔊 **Cross-Platform Sound**: Plays completion sounds on macOS, Windows, and Linux
-- ⚙️ **Highly Configurable**: Customize messages, sounds, and behavior
-- 🔧 **Extensible Architecture**: Easy to add new notification types and watchers
-- 📝 **Detailed Logging**: Optional output channel for debugging
+- 🔔 **Smart Notifications**: Desktop alerts for task completion, context capacity, and file confirmations
+- 📚 **Prompt Template Library**: Save, organize, and reuse effective prompts with variable substitution
+- 🔊 **Cross-Platform Sound**: Native sound support for macOS, Windows, and Linux
+- ⚙️ **Highly Configurable**: Extensive settings for messages, sounds, and thresholds
 - 🔒 **Privacy First**: Runs entirely locally, no telemetry or external calls
+
+## 📑 Table of Contents
+
+- [Quick Start](#-quick-start)
+- [Features Deep Dive](#-features-deep-dive)
+  - [Task Notifications](#task-notifications)
+  - [Prompt Template Library](#prompt-template-library)
+  - [Context Monitoring](#context-monitoring)
+  - [File Confirmations](#file-confirmations)
+- [Configuration](#%EF%B8%8F-configuration)
+- [Commands](#-commands)
+- [Troubleshooting](#-troubleshooting)
+- [Development](#-development)
+- [Contributing](#-contributing)
 
 ## 🚀 Quick Start
 
-### Installation
+### 1. Installation
 
-**Option 1: From VSIX** (Development/Testing)
+**From VSIX** (Recommended for testing)
 ```bash
-npm install
-npm run build
-npm run package
+npm install && npm run build && npm run package
 ```
-Then install the generated `.vsix` file via **Extensions → Install from VSIX...**
+Install the generated `.vsix` via **Extensions → Install from VSIX...**
 
-**Option 2: From Source** (Development)
+**From Source** (Development)
 ```bash
-git clone https://github.com/your-username/cursor-helper.git
+git clone https://github.com/alieneclectic/cursor-helper.git
 cd cursor-helper
 npm install
 ```
-Press `F5` in VS Code/Cursor to open Extension Development Host
+Press `F5` to launch Extension Development Host
 
-### Setup Cursor Rule (Automatic Notifications)
+### 2. Setup Notifications
 
-The easiest way to get automatic notifications:
+**Easy Method:**
+1. Open Command Palette: `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
+2. Run: `Cursor Helper: Quick Setup (Copy Rule)`
+3. Follow the prompts to add the rule to Cursor
 
-1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
-2. Type: `Cursor Helper: Quick Setup (Copy Rule)`
-3. Press Enter and follow the instructions
+**Manual Method** - Add this to Cursor Settings:
 
-**Or manually add this rule to Cursor Settings:**
+<details>
+<summary><b>macOS/Linux</b></summary>
 
-**macOS/Linux:**
 ```text
-When you complete a task, run this command to notify the user:
+At the END of your turn, after you have completely finished all work and before ending your response, run this command to notify the user:
 <!run:sh -lc "echo \"$(date) :: CURSOR_DONE\" > $HOME/.cursor-notify.flag">
 ```
+</details>
 
-**Windows:**
+<details>
+<summary><b>Windows</b></summary>
+
 ```text
-When you complete a task, run this command to notify the user:
+At the END of your turn, after you have completely finished all work and before ending your response, run this command to notify the user:
 <!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\.cursor-notify.flag -Value $d;">
 ```
+</details>
 
-### Test It Works
+### 3. Test It
 
-1. Press `Cmd+Shift+P` / `Ctrl+Shift+P`
-2. Type: `Cursor Helper: Test Notification`
-3. You should see a notification and hear a sound! 🎉
+Run `Cursor Helper: Test Notification` from the Command Palette. You should see a notification and hear a sound! 🎉
 
-### Setup Context Window Monitoring
+## 🎯 Features Deep Dive
 
-Get alerted when Cursor's context window reaches capacity:
+### Task Notifications
 
-1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
-2. Type: `Cursor Helper: Setup Context Window Monitoring`
-3. Press Enter and follow the instructions
-4. Paste the rule into your Cursor Settings alongside your existing rules
+Get instant desktop notifications when Cursor completes tasks. The extension watches a flag file that Cursor updates via a custom rule. When detected, you'll receive a notification with optional sound.
 
-**Or manually add this rule:**
+**How it works:**
+1. Add the Cursor rule (see Quick Start)
+2. Cursor AI completes a task → updates flag file
+3. Extension detects change → triggers notification
 
-**macOS/Linux:**
+### Prompt Template Library
+
+Save, organize, and reuse your most effective prompts with powerful variable substitution. Perfect for standardizing workflows and sharing best practices with your team.
+
+**Key Features:**
+- 📝 **Create from scratch or selection**: Convert any text into a reusable template
+- 🔄 **Variable substitution**: Use `{{variableName}}` for dynamic placeholders
+- 📂 **Category organization**: Refactoring, Debugging, Testing, Documentation, Optimization, General
+- 🏷️ **Tags & search**: Easily find templates with tags and full-text search
+- 📊 **Usage tracking**: See which templates are most effective
+- 🔀 **Import/Export**: Share templates across projects and teams
+- ⭐ **8 default templates**: Get started immediately with curated examples
+
+**Quick Start:**
+1. Run: `Cursor Helper: Open Template Library`
+2. Browse default templates or create your own
+3. Use `Cursor Helper: Insert Template` to add to your prompt
+
+**Variable Syntax:**
+- `{{name}}` - Simple placeholder
+- `{{name:description}}` - With descriptive prompt
+- `{{name:description:default}}` - With default value
+
+**Example Template:**
+```
+Please refactor {{fileName:Name of the file}} to improve {{goal:Refactoring goal::readability}}.
+
+Focus on:
+- Code clarity
+- Performance
+- {{customFocus:Additional focus area::Error handling}}
+```
+
+**Learn More:** See [TEMPLATE_LIBRARY_GUIDE.md](TEMPLATE_LIBRARY_GUIDE.md) for detailed documentation.
+
+### Context Monitoring
+
+Get alerted when Cursor's context window nears capacity so you can start fresh or summarize.
+
+**Setup:**
+1. Run: `Cursor Helper: Setup Context Window Monitoring`
+2. Or manually add this rule to Cursor Settings:
+
+<details>
+<summary><b>macOS/Linux</b></summary>
+
 ```text
 When the context window usage exceeds 90%, run this command to alert the user:
 <!run:sh -lc "echo \"$(date) :: CONTEXT_ALERT\" > $HOME/.cursor-context-alert.flag">
 ```
+</details>
 
-**Windows:**
+<details>
+<summary><b>Windows</b></summary>
+
 ```text
 When the context window usage exceeds 90%, run this command to alert the user:
 <!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\.cursor-context-alert.flag -Value $d;">
 ```
+</details>
 
-You can adjust the threshold (default 90%) in the extension settings.
+Adjust threshold in settings (default: 90%)
 
-### Setup File Confirmation Alerts
+### File Confirmations
 
-Get notified when Cursor requests permission to edit files:
+Get notified when Cursor requests permission to edit files, so you never miss an important approval.
 
-1. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
-2. Type: `Cursor Helper: Setup File Confirmation Alerts`
-3. Press Enter and follow the instructions
-4. Paste the rule into your Cursor Settings alongside your existing rules
+**Setup:**
+1. Run: `Cursor Helper: Setup File Confirmation Alerts`
+2. Or manually add this rule to Cursor Settings:
 
-**Or manually add this rule:**
+<details>
+<summary><b>macOS/Linux</b></summary>
 
-**macOS/Linux:**
 ```text
 Before asking for confirmation to edit a file, run this command to alert the user:
 <!run:sh -lc "echo \"$(date) :: FILE_CONFIRM\" > $HOME/.cursor-file-confirm.flag">
 ```
+</details>
 
-**Windows:**
+<details>
+<summary><b>Windows</b></summary>
+
 ```text
 Before asking for confirmation to edit a file, run this command to alert the user:
 <!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\.cursor-file-confirm.flag -Value $d;">
 ```
-
-This helps you stay aware when AI needs your confirmation to modify files.
+</details>
 
 ## ⚙️ Configuration
 
+<details>
+<summary><b>All Settings</b></summary>
+
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `cursorHelper.flagFile` | string | `~/.cursor-notify.flag` | Path to the flag file to watch |
-| `cursorHelper.message` | string | `Cursor task complete` | Notification message to display |
-| `cursorHelper.playSound` | boolean | `true` | Play a sound when tasks complete |
-| `cursorHelper.customSoundPath` | string | `""` | Path to custom sound file (empty = system default) |
-| `cursorHelper.debounceMs` | number | `500` | Debounce time for file change events (ms) |
-| `cursorHelper.enableLogging` | boolean | `false` | Enable detailed logging to output channel |
-| `cursorHelper.contextMonitoring.enabled` | boolean | `true` | Enable context window capacity monitoring |
-| `cursorHelper.contextMonitoring.flagFile` | string | `~/.cursor-context-alert.flag` | Path to the context alert flag file |
-| `cursorHelper.contextMonitoring.message` | string | `⚠️ Context window at capacity` | Message to display when context window is at capacity |
-| `cursorHelper.contextMonitoring.threshold` | number | `90` | Alert when context usage exceeds this percentage (0-100) |
-| `cursorHelper.fileConfirmation.enabled` | boolean | `true` | Enable alerts when Cursor requests file edit confirmation |
-| `cursorHelper.fileConfirmation.flagFile` | string | `~/.cursor-file-confirm.flag` | Path to the file confirmation alert flag file |
-| `cursorHelper.fileConfirmation.message` | string | `📝 Cursor is requesting file edit permission` | Message to display when Cursor requests file edit confirmation |
+| `cursorHelper.flagFile` | string | `~/.cursor-notify.flag` | Task completion flag file path |
+| `cursorHelper.message` | string | `Cursor task complete` | Notification message |
+| `cursorHelper.playSound` | boolean | `true` | Enable sound on completion |
+| `cursorHelper.customSoundPath` | string | `""` | Custom sound file path |
+| `cursorHelper.debounceMs` | number | `500` | Debounce time (ms) |
+| `cursorHelper.enableLogging` | boolean | `false` | Enable debug logging |
+| **Context Monitoring** ||||
+| `contextMonitoring.enabled` | boolean | `true` | Enable context alerts |
+| `contextMonitoring.flagFile` | string | `~/.cursor-context-alert.flag` | Context flag file |
+| `contextMonitoring.message` | string | `⚠️ Context window at capacity` | Alert message |
+| `contextMonitoring.threshold` | number | `90` | Alert threshold (%) |
+| **File Confirmations** ||||
+| `fileConfirmation.enabled` | boolean | `true` | Enable file edit alerts |
+| `fileConfirmation.flagFile` | string | `~/.cursor-file-confirm.flag` | File confirm flag |
+| `fileConfirmation.message` | string | `📝 Cursor is requesting file edit permission` | Alert message |
+| **Template Library** ||||
+| `templateLibrary.enabled` | boolean | `true` | Enable template library |
+| `templateLibrary.showInCommandPalette` | boolean | `true` | Show in command palette |
+| `templateLibrary.recentTemplatesCount` | number | `5` | Number of recent templates |
 
-### Example Configuration
+</details>
 
+**Example Configuration:**
 ```json
 {
-  "cursorHelper.flagFile": "~/projects/.cursor-done",
-  "cursorHelper.message": "✅ AI task finished!",
-  "cursorHelper.playSound": true,
-  "cursorHelper.customSoundPath": "~/sounds/complete.wav",
-  "cursorHelper.debounceMs": 1000,
-  "cursorHelper.enableLogging": true
+  "cursorHelper.message": "✅ Task complete!",
+  "cursorHelper.customSoundPath": "/System/Library/Sounds/Hero.aiff",
+  "cursorHelper.contextMonitoring.threshold": 85
 }
 ```
 
-### Platform-Specific Sound Paths
+**Platform-Specific Sounds:**
+- **macOS**: `/System/Library/Sounds/Hero.aiff`
+- **Windows**: `C:\Users\YourName\Music\complete.wav`
+- **Linux**: `/home/username/sounds/complete.wav`
 
-**macOS** (system sounds):
-```json
-{
-  "cursorHelper.customSoundPath": "/System/Library/Sounds/Hero.aiff"
-}
-```
+## 💻 Commands
 
-**Windows** (custom WAV):
-```json
-{
-  "cursorHelper.customSoundPath": "C:\\Users\\YourName\\Music\\complete.wav"
-}
-```
+Access via Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
 
-**Linux** (custom sound):
-```json
-{
-  "cursorHelper.customSoundPath": "/home/username/sounds/complete.wav"
-}
-```
-
-## 🎯 Usage
-
-### Commands
-
-Use the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`):
-- **Cursor Helper: Quick Setup (Copy Rule)** - Easy one-click setup with platform-specific rule
-- **Cursor Helper: Setup Context Window Monitoring** - Setup alerts for context capacity
-- **Cursor Helper: Setup File Confirmation Alerts** - Setup alerts for file edit confirmations
-- **Cursor Helper: Test Notification** - Trigger a test notification
-- **Cursor Helper: Open Settings** - Open extension settings
-
-### How It Works
-
-**Task Completion Notifications:**
-1. You add the Cursor Rule (see Quick Start)
-2. When Cursor AI completes a task, the rule executes
-3. The rule updates the flag file with a timestamp
-4. Extension detects the file change
-5. You get a notification and sound! 🎉
-
-**Context Window Monitoring:**
-1. Add the context monitoring rule to Cursor Settings
-2. When context usage exceeds your threshold (default 90%), Cursor triggers the rule
-3. The rule updates the context alert flag file
-4. Extension detects the alert
-5. You get notified to take action (e.g., start a new chat, summarize, etc.)
-
-**File Confirmation Alerts:**
-1. Add the file confirmation rule to Cursor Settings
-2. When Cursor asks for permission to edit a file, the rule executes
-3. The rule updates the file confirmation flag file
-4. Extension detects the alert
-5. You get notified that Cursor needs your attention for a file edit!
-
-## 🔊 Sound Support
-
-### macOS
-- Default: System sound (`/System/Library/Sounds/Glass.aiff`)
-- Custom: Any `.aiff` or `.wav` file via `customSoundPath`
-- Uses built-in `afplay` command
-
-### Windows
-- Default: Console beep (800Hz, 300ms)
-- Custom: `.wav` files via PowerShell `Media.SoundPlayer`
-
-### Linux
-- Attempts `paplay` (PulseAudio) → `aplay` (ALSA) → terminal bell
-- Custom support for `.wav` and `.oga` files
-- Install utilities: `sudo apt-get install pulseaudio-utils` or `alsa-utils`
-
-## 🏗️ Architecture
-
-The extension is built with extensibility in mind:
-
-```
-src/
-├── core/
-│   └── types.ts                   # Interfaces (IWatcher, INotifier, ISoundPlayer, ILogger)
-├── config/
-│   └── configManager.ts           # Configuration management with hot-reload
-├── watchers/
-│   ├── fileWatcher.ts             # Task completion watcher
-│   ├── contextWatcher.ts          # Context window capacity watcher
-│   └── fileConfirmationWatcher.ts # File edit confirmation watcher
-├── notifiers/
-│   └── vscodeNotifier.ts          # Notification handlers (extensible)
-├── sound/
-│   └── soundPlayer.ts             # Cross-platform sound playback (extensible)
-├── utils/
-│   ├── logger.ts                  # Logging utilities
-│   └── path.ts                    # Path utilities
-└── extension.ts                   # Main entry point
-```
-
-### Extensibility
-
-All major components implement interfaces, making it easy to extend:
-
-**Add a New Watcher:**
-```typescript
-import { IWatcher, TaskCompleteEvent } from './core/types';
-
-export class HttpWatcher implements IWatcher {
-    async start(): Promise<void> { /* ... */ }
-    stop(): void { /* ... */ }
-    isActive(): boolean { /* ... */ }
-}
-```
-
-**Add a New Notifier:**
-```typescript
-import { INotifier } from './core/types';
-
-export class WebhookNotifier implements INotifier {
-    async notify(message: string): Promise<void> { /* ... */ }
-}
-```
-
-**Add a New Sound Player:**
-```typescript
-import { ISoundPlayer } from './core/types';
-
-export class CustomSoundPlayer implements ISoundPlayer {
-    canPlay(): boolean { /* ... */ }
-    async play(soundPath?: string): Promise<void> { /* ... */ }
-}
-```
+| Command | Description |
+|---------|-------------|
+| `Quick Setup (Copy Rule)` | One-click setup with platform-specific rule |
+| `Setup Context Window Monitoring` | Setup context capacity alerts |
+| `Setup File Confirmation Alerts` | Setup file edit confirmation alerts |
+| `Open Template Library` | Browse and manage prompt templates |
+| `Insert Template` | Insert a template into current editor |
+| `Create Template from Selection` | Create a new template from selected text |
+| `Insert Recent Template` | Quick access to recently used templates |
+| `Test Notification` | Test notification and sound |
+| `Open Settings` | Open extension settings |
 
 ## 🐛 Troubleshooting
 
-### Notifications Not Appearing
+<details>
+<summary><b>Notifications Not Working</b></summary>
 
-1. **Check flag file path:**
+1. **Enable logging** and check output:
+   ```json
+   { "cursorHelper.enableLogging": true }
+   ```
+   View: **View → Output → Cursor Helper**
+
+2. **Verify flag file exists:**
    ```bash
    # macOS/Linux
    ls -la ~/.cursor-notify.flag
-   
-   # Windows PowerShell
+   # Windows
    Test-Path $env:USERPROFILE\.cursor-notify.flag
    ```
 
-2. **Enable logging:**
-   - Set `"cursorHelper.enableLogging": true`
-   - View Output: **View → Output → Cursor Helper**
-
 3. **Test manually:**
    ```bash
-   # macOS/Linux
    echo "test" > ~/.cursor-notify.flag
-   
-   # Windows
-   echo "test" > %USERPROFILE%\.cursor-notify.flag
    ```
 
-### Sound Not Playing
+4. **Common issues:**
+   - Network drives don't support file watching (use local paths)
+   - Multiple notifications? Increase `debounceMs`
+   - Rule not added to Cursor Settings?
 
-**macOS:**
-```bash
-# Check afplay
-which afplay
-afplay /System/Library/Sounds/Glass.aiff
-```
+</details>
 
-**Linux:**
-```bash
-# Install sound utilities (Ubuntu/Debian)
-sudo apt-get install pulseaudio-utils
-# Or ALSA
-sudo apt-get install alsa-utils
-```
+<details>
+<summary><b>Sound Not Playing</b></summary>
 
-**Windows:** PowerShell should work by default
+- **macOS**: Check `afplay` exists: `which afplay`
+- **Linux**: Install audio utilities:
+  ```bash
+  sudo apt-get install pulseaudio-utils  # or alsa-utils
+  ```
+- **Windows**: PowerShell works by default
+- **All**: Test custom path in settings
 
-### File Watcher Issues
-
-- Network drives or cloud storage may not support file watching
-- Try using a local path for the flag file
-- Increase `debounceMs` if getting multiple notifications
+</details>
 
 ## 🔧 Development
 
-### Building from Source
-
+**Build & Run:**
 ```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Watch mode (auto-rebuild on changes)
-npm run watch
-
-# Package for distribution
-npm run package
+npm install              # Install dependencies
+npm run build            # Build TypeScript
+npm run watch            # Watch mode for development
+npm run package          # Create .vsix package
 ```
 
-### Debugging
-
-1. Open the project in VS Code/Cursor
+**Debug:**
+1. Open project in VS Code/Cursor
 2. Press `F5` to launch Extension Development Host
-3. Set breakpoints in TypeScript files
-4. Use Command Palette to test commands
-5. Check Output panel (View → Output → Cursor Helper) for logs
+3. Test commands via Command Palette
+4. View logs: **View → Output → Cursor Helper**
 
-### Testing
-
-1. **Test Command:** `Cursor Helper: Test Notification`
-2. **Manual Flag Update:** `echo "test" > ~/.cursor-notify.flag`
-3. **Watch Mode:** Run `npm run watch` and press `F5`
-4. **VSIX Install:** `npm run package` then install the `.vsix` file
-
-### Project Structure
-
+**Architecture:**
 ```
-cursor-helper/
-├── src/                      # TypeScript source files
-├── out/                      # Compiled JavaScript (generated)
-├── package.json              # Extension manifest
-├── tsconfig.json             # TypeScript configuration
-├── .vscode/                  # VS Code debug configuration
-│   ├── launch.json
-│   └── tasks.json
-└── README.md                 # This file
+src/
+├── core/types.ts                    # Core interfaces
+├── config/configManager.ts          # Settings management
+├── watchers/                        # File watchers
+├── notifiers/vscodeNotifier.ts      # Notification handler
+├── sound/soundPlayer.ts             # Cross-platform audio
+├── templates/                       # Prompt template library
+└── extension.ts                     # Entry point
 ```
+
+The codebase uses interfaces (`IWatcher`, `INotifier`, `ISoundPlayer`) making it easy to extend with new functionality.
 
 ## 🤝 Contributing
 
-Contributions are welcome! This extension is designed to be extensible.
+Contributions welcome! The extension is designed for extensibility.
 
-### Getting Started
+**Quick Start:**
+1. Fork & clone
+2. `npm install` → Make changes → `npm run watch`
+3. Press `F5` to test
+4. Submit PR with clear description
 
-1. Fork and clone the repository
-2. Run `npm install`
-3. Make changes in `src/` directory
-4. Run `npm run build` or `npm run watch`
-5. Press `F5` to test in Extension Development Host
+**Contribution Ideas:**
+- New watcher types (HTTP, logs, processes)
+- Webhook notifications
+- Rich notifications with actions
+- Automated tests
 
-### Coding Standards
-
-- Use TypeScript strict mode
-- Prefer interfaces over types for extensibility
-- Use async/await over callbacks
-- Document public APIs with JSDoc comments
-- Run `npm run lint` before committing
-
-### Areas for Contribution
-
-- Add new watcher types (HTTP endpoints, log file tailing, process monitoring)
-- Add new notification types (webhooks, rich notifications with buttons)
-- Add new sound players or platform support
-- Improve error handling and edge cases
-- Add automated tests
-- Improve documentation
-
-### Pull Request Process
-
-1. Update README.md if adding new features
-2. Ensure all tests pass and linting is clean
-3. Create a Pull Request with:
-   - Clear description of changes
-   - Screenshots/GIFs for UI changes
-   - Platform testing notes
+**Standards:** TypeScript strict mode, interfaces over types, async/await, JSDoc for public APIs
 
 ## 📜 Changelog
 
-### [0.5.0] - 2025-10-01
+**v0.7.1** (2025-10-02)
+- 🗑️ **REMOVED**: Token tracking feature (was non-functional without automatic API integration)
+- 🧹 Cleaned up codebase and reduced complexity
+- ✨ Focus on core working features: notifications, templates, and monitoring
 
-**Added:**
-- File edit confirmation alerts - get notified when Cursor asks to edit files
-- FileConfirmationWatcher for monitoring file edit confirmation requests
-- Setup File Confirmation Alerts command
-- File confirmation configuration options (enabled, flagFile, message)
-- Helps you stay aware when AI needs your permission to modify files
+**v0.7.0** (2025-10-02)
+- 📚 **NEW**: Prompt Template Library with variable substitution
+- 🔄 Save and reuse effective prompts across projects
+- 📂 Category organization and tag-based search
+- 📊 Usage tracking and analytics
+- 🔀 Import/Export templates for team sharing
+- ⭐ 8 curated default templates included
 
-### [0.2.0] - 2025-10-01
+**v0.6.1** (2025-10-02)
+- 🐛 Fixed: Notifications now trigger only when Cursor is completely done, not on individual step success
+- 📝 Updated Cursor Rule to be more explicit about end-of-turn timing
 
-**Added:**
-- Context window capacity monitoring with configurable threshold
-- Context watcher for monitoring context usage alerts
-- Setup Context Window Monitoring command
-- Context-specific configuration options (enabled, flagFile, message, threshold)
-- Automatic alerts when context window reaches capacity
+**v0.6.0** (2025-10-02)
+- 🐛 Fixed notification timing (removed in v0.7.1)
 
-### [0.1.0] - 2025-10-01
+**v0.5.0** (2025-10-01)
+- 📝 File edit confirmation alerts
 
-**Added:**
-- Initial release of Cursor Helper extension
-- File-based task completion detection via flag file
-- Cross-platform desktop notifications
-- Cross-platform sound playback (macOS/Windows/Linux)
-- Configurable settings (flag file path, message, sound, debounce, logging)
-- Quick Setup command with platform-specific rules
-- Test Notification and Open Settings commands
+**v0.2.0** (2025-10-01)
+- ⚠️ Context window monitoring
+
+**v0.1.0** (2025-10-01)
+- 🎉 Initial release with notifications & sounds
+
+<details>
+<summary>View full changelog</summary>
+
+### [0.7.1] - Code Cleanup & Feature Removal
+- Removed non-functional token tracking feature
+- Token tracking required manual input and lacked automatic API integration
+- Cleaned up 500+ lines of unused code and dependencies
+- Improved codebase maintainability and focus
+- Updated documentation to reflect current feature set
+
+### [0.7.0] - Prompt Template Library
+- Added comprehensive prompt template management system
+- Variable substitution with `{{variable}}` syntax
+- Category organization and tag-based search
+- Import/Export templates for team collaboration
+- 8 curated default templates included
+- Usage tracking and analytics
+
+### [0.6.1] - Bug Fix: Notification Timing
+- Fixed notifications triggering on individual step success instead of completion
+- Updated Cursor Rule to explicitly request end-of-turn execution
+- Added UPDATE_RULE.md guide for users to update their rules
+- Improved rule clarity with "At the END of your turn" phrasing
+
+### [0.5.0] - File Confirmations
+- File edit confirmation alerts
+- FileConfirmationWatcher implementation
+- Setup command and configuration options
+
+### [0.2.0] - Context Monitoring
+- Context window capacity monitoring
+- Configurable threshold alerts
+- Setup command and configuration
+
+### [0.1.0] - Initial Release
+- File-based task completion detection
+- Cross-platform notifications and sounds
 - Extensible architecture with interfaces
-- Hot-reload configuration support
-- Output channel logging for debugging
+- Quick setup commands
+- Configuration hot-reload
 
-## 🗺️ Roadmap
-
-- [ ] Status bar integration with task status
-- [ ] Multiple flag file support with labels
-- [ ] Webhook notification mode
-- [ ] Log file tailing mode
-- [ ] Rich notifications with action buttons
-- [ ] Rate limiting and cooldown
-- [ ] Bundled default sounds
-- [ ] E2E test suite
-- [ ] VS Code Marketplace publication
+</details>
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details
+MIT License - see [LICENSE](LICENSE) for details.
 
-## 🙏 Acknowledgments
+## 🙏 Support
 
-Built for the Cursor AI community to enhance the AI-assisted coding experience.
+- **Issues**: [GitHub Issues](https://github.com/alieneclectic/cursor-helper/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/alieneclectic/cursor-helper/discussions)
+- **Star**: If this helps you, please ⭐ star the repo!
+
+Built with ❤️ for the Cursor AI community.
 
 ---
 
-**Enjoy!** 🎉 If you find this extension helpful, please star the repository and share it with others!
+**Enjoy Cursor Helper!** 🎉

@@ -25,6 +25,11 @@ export interface CursorHelperConfig {
         flagFile: string;
         message: string;
     };
+    templateLibrary: {
+        enabled: boolean;
+        showInCommandPalette: boolean;
+        recentTemplatesCount: number;
+    };
 }
 
 /**
@@ -82,5 +87,60 @@ export interface IExtensionContext {
     extensionPath: string;
     workspaceState: vscode.Memento;
     globalState: vscode.Memento;
+}
+
+/**
+ * Prompt template categories
+ */
+export type TemplateCategory = 'refactoring' | 'debugging' | 'testing' | 'documentation' | 'optimization' | 'general';
+
+/**
+ * Variable placeholder in template
+ */
+export interface TemplateVariable {
+    name: string;
+    description?: string;
+    defaultValue?: string;
+}
+
+/**
+ * Prompt template structure
+ */
+export interface PromptTemplate {
+    id: string;
+    name: string;
+    description?: string;
+    category: TemplateCategory;
+    content: string;
+    variables: TemplateVariable[];
+    tags: string[];
+    createdAt: Date;
+    updatedAt: Date;
+    useCount: number;
+}
+
+/**
+ * Template library configuration
+ */
+export interface TemplateLibraryConfig {
+    enabled: boolean;
+    showInCommandPalette: boolean;
+    recentTemplatesCount: number;
+}
+
+/**
+ * Interface for template management
+ */
+export interface ITemplateManager {
+    createTemplate(template: Omit<PromptTemplate, 'id' | 'createdAt' | 'updatedAt' | 'useCount'>): Promise<PromptTemplate>;
+    updateTemplate(id: string, updates: Partial<Omit<PromptTemplate, 'id' | 'createdAt' | 'updatedAt'>>): Promise<PromptTemplate>;
+    deleteTemplate(id: string): Promise<void>;
+    getTemplate(id: string): Promise<PromptTemplate | undefined>;
+    getAllTemplates(): Promise<PromptTemplate[]>;
+    getTemplatesByCategory(category: TemplateCategory): Promise<PromptTemplate[]>;
+    searchTemplates(query: string): Promise<PromptTemplate[]>;
+    incrementUseCount(id: string): Promise<void>;
+    exportTemplates(): Promise<PromptTemplate[]>;
+    importTemplates(templates: PromptTemplate[]): Promise<void>;
 }
 

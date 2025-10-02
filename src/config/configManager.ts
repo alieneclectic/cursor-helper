@@ -40,6 +40,11 @@ export class ConfigManager {
                 enabled: config.get<boolean>('fileConfirmation.enabled', true),
                 flagFile: config.get<string>('fileConfirmation.flagFile', '~/.cursor-file-confirm.flag'),
                 message: config.get<string>('fileConfirmation.message', '📝 Cursor is requesting file edit permission')
+            },
+            templateLibrary: {
+                enabled: config.get<boolean>('templateLibrary.enabled', true),
+                showInCommandPalette: config.get<boolean>('templateLibrary.showInCommandPalette', true),
+                recentTemplatesCount: config.get<number>('templateLibrary.recentTemplatesCount', 5)
             }
         };
     }

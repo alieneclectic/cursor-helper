@@ -1,8 +1,8 @@
 {
   "name": "cursor-helper",
   "displayName": "Cursor Helper",
-  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds. Includes context window monitoring and file edit confirmation alerts.",
-  "version": "0.5.0",
+  "description": "Get notified when Cursor tasks complete with customizable notifications and sounds. Includes context window monitoring, file edit confirmation alerts, and prompt template library.",
+  "version": "0.7.1",
   "publisher": "Claritystorm",
   "icon": "icon.png",
   "engines": {
@@ -83,6 +83,21 @@
           "type": "string",
           "default": "📝 Cursor is requesting file edit permission",
           "description": "Message to display when Cursor requests file edit confirmation"
+        },
+        "cursorHelper.templateLibrary.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable prompt template library feature"
+        },
+        "cursorHelper.templateLibrary.showInCommandPalette": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show template commands in command palette"
+        },
+        "cursorHelper.templateLibrary.recentTemplatesCount": {
+          "type": "number",
+          "default": 5,
+          "description": "Number of recent templates to show in quick access"
         }
       }
     },
@@ -106,6 +121,22 @@
       {
         "command": "cursorHelper.setupFileConfirmation",
         "title": "Cursor Helper: Setup File Confirmation Alerts"
+      },
+      {
+        "command": "cursorHelper.showTemplateLibrary",
+        "title": "Cursor Helper: Open Template Library"
+      },
+      {
+        "command": "cursorHelper.insertTemplate",
+        "title": "Cursor Helper: Insert Template"
+      },
+      {
+        "command": "cursorHelper.createTemplateFromSelection",
+        "title": "Cursor Helper: Create Template from Selection"
+      },
+      {
+        "command": "cursorHelper.insertRecentTemplate",
+        "title": "Cursor Helper: Insert Recent Template"
       }
     ]
   },

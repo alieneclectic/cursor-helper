@@ -11,7 +11,9 @@ import { ContextWatcher } from './watchers/contextWatcher';
 import { FileConfirmationWatcher } from './watchers/fileConfirmationWatcher';
 import { VSCodeNotifier } from './notifiers/vscodeNotifier';
 import { SoundPlayerFactory } from './sound/soundPlayer';
-import { TaskCompleteEvent, IWatcher, INotifier, ISoundPlayer } from './core/types';
+import { TemplateManager } from './templates/templateManager';
+import { TemplateLibraryView } from './templates/templateLibraryView';
+import { TaskCompleteEvent, IWatcher, INotifier, ISoundPlayer, TemplateCategory } from './core/types';
 
 /**
  * Extension manager - orchestrates all components
@@ -24,14 +26,19 @@ class CursorHelperExtension {
     private fileConfirmationWatcher: IWatcher | null = null;
     private notifier: INotifier;
     private soundPlayer: ISoundPlayer;
+    private templateManager: TemplateManager;
     private disposables: vscode.Disposable[] = [];
+    private context: vscode.ExtensionContext;
 
     constructor(context: vscode.ExtensionContext) {
+        this.context = context;
+        
         // Initialize core components
         this.logger = new OutputChannelLogger('Cursor Helper');
         this.configManager = new ConfigManager(this.logger);
         this.notifier = new VSCodeNotifier(this.logger);
         this.soundPlayer = SoundPlayerFactory.create(this.logger);
+        this.templateManager = new TemplateManager(context, this.logger);
 
         // Register for disposal
         context.subscriptions.push(this.logger);
@@ -207,8 +214,208 @@ class CursorHelperExtension {
             }
         });
 
-        this.disposables.push(testNotifyCmd, openSettingsCmd, quickSetupCmd, contextSetupCmd, fileConfirmSetupCmd);
+        // Template Library Commands
+        const showTemplateLibraryCmd = vscode.commands.registerCommand('cursorHelper.showTemplateLibrary', async () => {
+            this.logger.info('Show template library triggered');
+            await TemplateLibraryView.show(this.context, this.templateManager, this.logger);
+        });
+
+        const insertTemplateCmd = vscode.commands.registerCommand('cursorHelper.insertTemplate', async () => {
+            this.logger.info('Insert template triggered');
+            await this.insertTemplate();
+        });
+
+        const createTemplateFromSelectionCmd = vscode.commands.registerCommand('cursorHelper.createTemplateFromSelection', async () => {
+            this.logger.info('Create template from selection triggered');
+            await this.createTemplateFromSelection();
+        });
+
+        const insertRecentTemplateCmd = vscode.commands.registerCommand('cursorHelper.insertRecentTemplate', async () => {
+            this.logger.info('Insert recent template triggered');
+            await this.insertRecentTemplate();
+        });
+
+        this.disposables.push(
+            testNotifyCmd, 
+            openSettingsCmd, 
+            quickSetupCmd, 
+            contextSetupCmd, 
+            fileConfirmSetupCmd,
+            showTemplateLibraryCmd,
+            insertTemplateCmd,
+            createTemplateFromSelectionCmd,
+            insertRecentTemplateCmd
+        );
         this.logger.debug('Commands registered');
+    }
+
+    /**
+     * Inserts a template into the editor
+     */
+    private async insertTemplate(): Promise<void> {
+        const templates = await this.templateManager.getAllTemplates();
+        
+        if (templates.length === 0) {
+            const action = await vscode.window.showInformationMessage(
+                'No templates found. Create your first template!',
+                'Open Template Library'
+            );
+            
+            if (action) {
+                await TemplateLibraryView.show(this.context, this.templateManager, this.logger);
+            }
+            return;
+        }
+
+        // Group templates by category
+        const categories: TemplateCategory[] = ['refactoring', 'debugging', 'testing', 'documentation', 'optimization', 'general'];
+        const items: vscode.QuickPickItem[] = [];
+        
+        for (const category of categories) {
+            const categoryTemplates = templates.filter(t => t.category === category);
+            if (categoryTemplates.length > 0) {
+                items.push({ label: category.toUpperCase(), kind: vscode.QuickPickItemKind.Separator });
+                items.push(...categoryTemplates.map(t => ({
+                    label: t.name,
+                    description: `Used ${t.useCount} times`,
+                    detail: t.description,
+                    id: t.id
+                } as any)));
+            }
+        }
+
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select a template to insert'
+        }) as any;
+
+        if (selected && selected.id) {
+            await this.useTemplate(selected.id);
+        }
+    }
+
+    /**
+     * Uses a template (with variable substitution)
+     */
+    private async useTemplate(id: string): Promise<void> {
+        const template = await this.templateManager.getTemplate(id);
+        if (!template) {
+            return;
+        }
+
+        // Extract variables from template
+        const variables = this.templateManager.extractVariables(template.content);
+        const values: Record<string, string> = {};
+
+        // Prompt user for variable values
+        for (const variable of variables) {
+            const value = await vscode.window.showInputBox({
+                prompt: variable.description || `Enter value for ${variable.name}`,
+                placeHolder: variable.defaultValue || '',
+                value: variable.defaultValue || ''
+            });
+
+            if (value === undefined) {
+                return; // User cancelled
+            }
+
+            values[variable.name] = value;
+        }
+
+        // Substitute variables
+        const content = this.templateManager.substituteVariables(template.content, values);
+
+        // Insert into active editor or copy to clipboard
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            await editor.edit(editBuilder => {
+                editBuilder.insert(editor.selection.active, content);
+            });
+            vscode.window.showInformationMessage('✅ Template inserted!');
+        } else {
+            await vscode.env.clipboard.writeText(content);
+            vscode.window.showInformationMessage('✅ Template copied to clipboard!');
+        }
+
+        // Increment use count
+        await this.templateManager.incrementUseCount(id);
+    }
+
+    /**
+     * Creates a template from selected text
+     */
+    private async createTemplateFromSelection(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.selection.isEmpty) {
+            vscode.window.showWarningMessage('Please select text to create a template');
+            return;
+        }
+
+        const selectedText = editor.document.getText(editor.selection);
+
+        const name = await vscode.window.showInputBox({
+            prompt: 'Template name',
+            placeHolder: 'My Template'
+        });
+
+        if (!name) return;
+
+        const categories: TemplateCategory[] = ['refactoring', 'debugging', 'testing', 'documentation', 'optimization', 'general'];
+        const category = await vscode.window.showQuickPick(categories, {
+            placeHolder: 'Select category'
+        }) as TemplateCategory;
+
+        if (!category) return;
+
+        const description = await vscode.window.showInputBox({
+            prompt: 'Description (optional)',
+            placeHolder: 'Brief description of the template'
+        });
+
+        const tagsInput = await vscode.window.showInputBox({
+            prompt: 'Tags (optional, comma-separated)',
+            placeHolder: 'e.g., react, typescript, bug-fix'
+        });
+
+        const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()) : [];
+
+        await this.templateManager.createTemplate({
+            name,
+            category,
+            description: description || undefined,
+            content: selectedText,
+            variables: [],
+            tags
+        });
+
+        vscode.window.showInformationMessage(`✅ Template "${name}" created!`);
+    }
+
+    /**
+     * Shows recent templates for quick insertion
+     */
+    private async insertRecentTemplate(): Promise<void> {
+        const config = this.configManager.getConfig();
+        const recentTemplates = await this.templateManager.getRecentTemplates(config.templateLibrary.recentTemplatesCount);
+
+        if (recentTemplates.length === 0) {
+            vscode.window.showInformationMessage('No recent templates');
+            return;
+        }
+
+        const items = recentTemplates.map(t => ({
+            label: t.name,
+            description: t.category,
+            detail: t.description,
+            id: t.id
+        } as any));
+
+        const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select a recent template'
+        });
+
+        if (selected) {
+            await this.useTemplate(selected.id);
+        }
     }
 
     /**
@@ -252,11 +459,11 @@ class CursorHelperExtension {
         const platform = process.platform;
         
         if (platform === 'win32') {
-            return 'When you complete a task, run this command to notify the user:\n' +
+            return 'At the END of your turn, after you have completely finished all work and before ending your response, run this command to notify the user:\n' +
                    '<!run:powershell -command "$d=Get-Date; Set-Content -Path $env:USERPROFILE\\.cursor-notify.flag -Value $d;">';
         } else {
             // macOS and Linux
-            return 'When you complete a task, run this command to notify the user:\n' +
+            return 'At the END of your turn, after you have completely finished all work and before ending your response, run this command to notify the user:\n' +
                    '<!run:sh -lc "echo \\"$(date) :: CURSOR_DONE\\" > $HOME/.cursor-notify.flag">';
         }
     }
